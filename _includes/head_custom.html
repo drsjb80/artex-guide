@@ -1,0 +1,18 @@
+<style>
+  /* Fix: the sidebar site title wraps to two lines, but the theme pins
+     .site-header to a fixed 3.75rem (height + max-height) and vertically
+     centers the title, clipping the TOP line. Let the header grow and the
+     title wrap. Injected after the theme stylesheet, so these win. */
+  .site-header {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 3.75rem;
+  }
+  .site-title {
+    height: auto !important;
+    white-space: normal !important;
+    line-height: 1.3 !important;
+    padding-top: 0.6rem !important;
+    padding-bottom: 0.6rem !important;
+  }
+</style>
