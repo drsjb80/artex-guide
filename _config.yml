@@ -1,0 +1,33 @@
+title: Autonomous LLM Pentesting with ARTEX
+description: >-
+  A field guide to running ARTEX — a self-hosted, LLM-driven autonomous
+  penetration-testing platform — against a local, deliberately-vulnerable lab.
+  Covers setup, model selection (local and frontier), cost control, goal
+  design, and the root causes behind every wall we hit.
+
+# just-the-docs is a documentation theme with sidebar nav + search.
+# GitHub Pages builds it natively via remote_theme — no local build needed.
+remote_theme: just-the-docs/just-the-docs
+
+color_scheme: dark
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  "ARTEX on GitHub":
+    - "https://github.com/BaaRai/ARTEX"
+aux_links_new_tab: true
+
+# Footer
+back_to_top: true
+back_to_top_text: "Back to top"
+
+plugins:
+  - jekyll-remote-theme
+
+# Exclude repo scaffolding from the built site
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - README.md
