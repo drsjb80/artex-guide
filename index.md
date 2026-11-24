@@ -50,7 +50,7 @@ the agent *converges* to findings instead of exploring forever. This guide walks
 
 | Model | Where | Refuses offensive prompts? | Finds real vulns? | Notes |
 |-------|-------|:--:|:--:|-------|
-| **qwen3:30b-a3b** (Ollama) | Local, free | ❌ No | ✅ Yes (found 3) | No safety layer; the classroom workhorse. Slower, more verbose. |
+| **qwen3:30b-a3b** (Ollama) | Local, free | ❌ No | ✅ Yes — but [verify](./verifying-findings) | No safety layer; the classroom workhorse. Slower, more verbose. Reliable on easy bugs, unreliable on multi-step ones. |
 | **gpt-5-mini class** (OpenAI) | Frontier API | ❌ No | ✅ Yes (verified) | Rigorous, converges well; needs `max_completion_tokens`. Budget-capped. |
 | **Claude Sonnet** (Anthropic) | Frontier API | ✅ **Yes — `cyber` safeguard** | — | Refuses autonomous offensive prompts. Legit path: [Cyber Verification Program](https://support.claude.com/en/articles/14604842-cyber-verification-program). |
 
@@ -69,3 +69,6 @@ See [Models & LLM configuration](./models) for the full story, including why Son
    `restart` vs `up -d` trap.
 5. **[Troubleshooting](./troubleshooting)** — a root-cause catalog of every failure mode, with the
    exact symptom and fix.
+6. **[Verifying findings](./verifying-findings)** — two same-model runs with every finding
+   independently re-tested: what verification caught (a false positive, an overstatement, a severe
+   miss) and a taxonomy for triaging autonomous reports.
