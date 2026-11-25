@@ -168,6 +168,42 @@ as written did not establish it.
 
 ---
 
+## Verifying through the UI — when a browser beats curl
+
+Every verdict above was reached by **replaying the PoC with curl**. There is a second, sometimes
+stronger way to confirm a finding: **drive the exploit through the app's real interface with a
+browser and let the application confirm the result itself.** (This uses a browser-automation tool
+driven by Claude Code — separate from ARTEX and from ARTEX's own traffic-capture extension.)
+
+Worked example — the Juice Shop login bypass from [Case study B](#case-study-b--owasp-juice-shop-task-9),
+re-run through the actual login form instead of curl. Typing `' OR 1=1 --` into the **email** field
+and submitting made Juice Shop **solve its own "Login Admin" challenge** — the app announcing, in its
+own UI, that we authenticated as the administrator. That is stronger evidence than a curl `200`: the
+target itself adjudicated the exploit. The run was captured as a shareable GIF.
+
+**Reach for a browser pass when:**
+
+- the bug lives in a **UI-only flow** (multi-step forms, client-side state) that is awkward to script;
+- it is a **client-side vulnerability that must render to be real** — stored/DOM XSS, clickjacking,
+  CSP behaviour — where "it executed in a browser" *is* the proof;
+- you want **evidence a human can watch** — screenshots or a GIF for the report.
+
+**Stick with curl / ARTEX when:**
+
+- the target is a **JSON API** (e.g. VAmPI) — a browser just renders raw JSON and adds nothing;
+- you need **breadth or fuzzing** — many payloads across many endpoints.
+
+Honest costs, observed on this run: browser automation is **slower and heavier per step** (each action
+is a screenshot round-trip), **coordinate-driven input is brittle on dynamic SPAs** (a success banner
+shifted the form down and the next click missed, silently), and **network capture must be armed before
+the action** and resets on navigation — so decide to record *before* you fire the exploit, not after.
+
+Bottom line: a browser pass is **another verification instrument**, complementary to curl and ARTEX,
+not a replacement. Use it where the UI *is* the attack surface or where seeing the app react is the
+proof; stay on curl for everything API-shaped.
+
+---
+
 ## Cross-run comparison
 
 Same model, two targets, every finding verified:
