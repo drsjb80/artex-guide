@@ -200,7 +200,9 @@ the action** and resets on navigation — so decide to record *before* you fire 
 
 Bottom line: a browser pass is **another verification instrument**, complementary to curl and ARTEX,
 not a replacement. Use it where the UI *is* the attack surface or where seeing the app react is the
-proof; stay on curl for everything API-shaped.
+proof; stay on curl for everything API-shaped. See
+[Choosing your tool](#choosing-your-tool-browser-proxy-or-curl) below for the full map by
+vulnerability class.
 
 ---
 
@@ -247,3 +249,66 @@ pass as part of the engagement, not an afterthought.
 
 See also: [Running → reading results & verifying](./running#reading-results-via-the-database) and
 [Troubleshooting → a "confirmed" finding that isn't real](./troubleshooting#a-confirmed-finding-that-isnt-real).
+
+---
+
+## Choosing your tool: browser, proxy, or curl
+
+The browser is one instrument on the bench, not the whole kit. Working a cross-section of WebGoat
+lessons by hand — SQL injection, reflected XSS, and IDOR — mapped out cleanly which tool fits which
+class of bug, and where each one is the wrong choice.
+
+### Fitness by vulnerability class
+
+| Vulnerability class | Browser automation | Why |
+|---|:--:|---|
+| SQL injection via a form field | ✅ Good | Inject into the real input; the app adjudicates (Juice Shop's challenge banner, WebGoat's "You have succeeded") |
+| XSS / DOM / client-side | ⭐ Best — often the only tool | The payload must *execute*; `console.log` + reading the console **proves** it ran, which curl cannot observe |
+| Authentication bypass (login form) | ✅ Good | Drive the real login flow end to end; the app confirms the identity |
+| IDOR / BOLA | ❌ Poor | No UI control tampers the identifier — you end up scripting `fetch()`, i.e. curl wearing a browser costume |
+| Parameter manipulation / forced browsing | ❌ Poor | Request-level work the UI never exposes |
+| API fuzzing / input-field discovery | ❌ Poor | Breadth favours spray-and-grep; clicking each candidate by hand is painfully slow |
+| Pure JSON API (no UI, e.g. VAmPI) | — N/A | Nothing to drive; a browser only renders raw JSON |
+
+### Techniques that earned their place
+
+Each of these was learned by hitting the opposite the hard way:
+
+- **Select by element reference, don't type at coordinates.** Coordinate input breaks the moment a
+  banner or hint box shifts the layout. Setting a field by its element ref is stable.
+- **Probe XSS with `console.log`, never `alert`.** A real `alert()` dialog blocks the automation
+  outright; `console.log` proves execution just as well and is readable back from the console.
+- **Arm recording and network capture *before* you fire the exploit.** Both start empty and reset on
+  navigation, so the one request you care about is easily missed.
+- **The moment you reach for `fetch()` in the console, ask whether curl is cleaner.** You have left
+  UI automation and started doing request-level work by hand.
+
+### The ladder: browser → proxy → curl
+
+IDOR makes the hand-off concrete. In the browser the only control is a "View Profile" button that
+returns *your own* record; there is no button to change the id. Exploiting it means scripting a
+request — which is just curl with a session cookie. And curl does the whole thing end to end, more
+cleanly than the browser:
+
+```bash
+# curl, its own cookie jar, no browser needed:
+curl -s -c jar -b jar -d "username=tom&password=cat"  http://localhost:8080/WebGoat/IDOR/login
+curl -s -b jar  http://localhost:8080/WebGoat/IDOR/profile/2342388   # tampered id → another user
+# → "Well done, you found someone else's profile"
+```
+
+So where does the browser belong in a request-level attack? **Holding a session that curl cannot
+easily obtain** — SSO, SAML/OAuth redirects, MFA, or a JavaScript-heavy login. The pattern is:
+authenticate in the browser, then replay and tamper with curl. The snag is the hand-off — a session
+cookie is usually `HttpOnly` (and the automation layer blocks `document.cookie` besides), so you
+cannot simply copy it across. The bridge that actually works is an **intercepting proxy** between the
+browser and the target, which captures the live session and lets you replay and modify requests.
+
+That is precisely what ARTEX is built around: its recording MITM proxy sits in exactly that position
+by design, so captured traffic becomes findings that can be retested. The practical ladder:
+
+> **Browser** drives the UI and holds hard-won sessions → an **intercepting proxy** (ARTEX's, Burp,
+> or ZAP) captures and replays → **curl** tampers and fuzzes at the request level.
+
+Each tool hands off to the next. The two mistakes to avoid are mirror images: using the browser for
+request-level work, or using curl for something that only exists once JavaScript has run.
