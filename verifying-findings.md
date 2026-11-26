@@ -179,7 +179,11 @@ Worked example — the Juice Shop login bypass from [Case study B](#case-study-b
 re-run through the actual login form instead of curl. Typing `' OR 1=1 --` into the **email** field
 and submitting made Juice Shop **solve its own "Login Admin" challenge** — the app announcing, in its
 own UI, that we authenticated as the administrator. That is stronger evidence than a curl `200`: the
-target itself adjudicated the exploit. The run was captured as a shareable GIF.
+target itself adjudicated the exploit. The run was captured as a shareable GIF:
+
+![Juice Shop login-bypass: typing ' OR 1=1 -- into the email field logs in as admin and solves the
+"Login Admin" challenge](./assets/images/juiceshop-sqli-login-bypass.gif)
+{: .text-center }
 
 **Reach for a browser pass when:**
 
@@ -257,6 +261,13 @@ See also: [Running → reading results & verifying](./running#reading-results-vi
 The browser is one instrument on the bench, not the whole kit. Working a cross-section of WebGoat
 lessons by hand — SQL injection, reflected XSS, and IDOR — mapped out cleanly which tool fits which
 class of bug, and where each one is the wrong choice.
+
+Here the browser is a natural fit: injecting `' OR '1'='1` into WebGoat's SQL-injection form and
+letting the lesson adjudicate it ("You have succeeded"), captured end to end —
+
+![WebGoat SQL-injection lesson driven through the browser: an injection typed into the form field is
+submitted and the lesson confirms the result](./assets/images/webgoat-sqli-intro-page9.gif)
+{: .text-center }
 
 ### Fitness by vulnerability class
 
