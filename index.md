@@ -17,9 +17,16 @@ This guide is both a **how-to** (get it running, point it at a target, read the 
 *and* understand why each piece matters.
 
 {: .warning }
-> **Authorized use only.** Everything here targets a local, isolated, intentionally-vulnerable app
-> (OWASP Juice Shop / WebGoat) running on your own machine. Only test systems you own or are
-> explicitly authorized to test.
+> **Authorized, local-only lab.** Everything in this guide runs on **your own machine**: the tools
+> (ARTEX, Cairn) in local Docker containers, and the targets — deliberately-vulnerable apps like
+> **OWASP Juice Shop, WebGoat, and VAmPI** — on `localhost`. Nothing here is pointed at the public
+> internet, and no result in this guide was obtained against a system we don't control.
+>
+> The payloads, exploits, and findings these tools produce are **real offensive techniques, not
+> simulations.** Only ever run them against systems you **own or have explicit written authorization
+> to test.** Reusing any of it — a PoC, a forged token, an injection string — against a server you
+> don't have permission to pen-test is unauthorized access and can carry serious legal consequences.
+> Don't.
 
 <details open markdown="block">
   <summary>Table of contents</summary>
@@ -72,3 +79,6 @@ See [Models & LLM configuration](./models) for the full story, including why Son
 6. **[Verifying findings](./verifying-findings)** — two same-model runs with every finding
    independently re-tested: what verification caught (a false positive, an overstatement, a severe
    miss) and a taxonomy for triaging autonomous reports.
+7. **[ARTEX vs Cairn](./framework-comparison)** — the same VAmPI goal run on a second framework, with
+   a local model and a frontier model: why a model-driven loop needs prompt scaffolding a weak model
+   can't supply, all findings verified.
