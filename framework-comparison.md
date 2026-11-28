@@ -129,28 +129,35 @@ recorded *negative* results too (PUT-email validates the JWT subject; DELETE req
 
 ## Run D — ARTEX + qwen3:30b-a3b (local)
 
-Deterministic up-front decomposition · 30-min wall-clock **cap** · planned all six objectives ·
-**one objective evidenced before the cap · did not converge.**
+We ran this cell **twice** — a 30-minute cap (task 23) and then, to rule out "it just needed more time,"
+a near-uncapped **2-hour** run (task 27). Both landed in the same place: **one objective evidenced, no
+convergence.**
 
 ARTEX did exactly what its architecture promises: at *round 0*, before touching the target, it
-decomposed the six-objective goal into six goal nodes — deterministically, as a property of the tool,
-not the model's judgment. That planning is not free. With qwen as the driver a single decomposition
-round took ~13 minutes and each worker turn ~2 minutes, so the 30-minute cap expired with the **plan
-complete but only one objective actually explored**: the `_debug` exposure (critical — the same true
-vuln Cairn's qwen found, and [independently re-verified](#what-this-adds-to-the-verification-story)
-against the live target).
+decomposed the six-objective goal into six goal nodes — deterministically, as a property of the tool, not
+the model's judgment. That planning is not free, and with qwen as the driver a single planner round took
+10–20 minutes.
 
-The lesson is *not* "ARTEX found less than Cairn." It is that **ARTEX front-loads structure and qwen is
-too slow to spend the remaining budget executing it.** The `1/6` here is a *wall-clock-starved* number,
-not a ceiling — the run was time-boxed mid-execution, not self-completed. Contrast Cairn + qwen, which
-"finished" in six steps only because it (wrongly) declared victory at 3/6. Two different failure modes:
-ARTEX ran out of clock with an honest plan; Cairn ran out of patience with a fabricated one.
+The 2-hour run is the decisive one, because it removes the budget excuse entirely:
 
-{: .note }
-> The clean, uncapped ARTEX + qwen measurement — letting the deterministic plan run to convergence with
-> *no* wall-clock limit — is the open experiment described in
-> [what we did *not* measure](#what-we-did-not-measure-a-clean-speed-head-to-head) below. It has not been
-> run yet; until it is, this cell stays a capped, non-converged data point.
+| ARTEX + qwen (task 27) | value |
+|---|---|
+| Wall-clock | **125 min** — ran to the 2 h deadline |
+| Objectives evidenced | **1 / 6** (`_debug` exposure, critical, [verified](#what-this-adds-to-the-verification-story)) |
+| Token budget used | **~0.9 M of 20 M (< 5%)** |
+| Turns used | **67 of 1500 (< 5%)** |
+| At the deadline | 2 worker intents **still in flight**, hard-cancelled with 0 findings |
+
+It was **not** token-limited, turn-limited, or cut short early — it had ~95% of everything left. It was
+**throughput-limited**: qwen's per-turn latency is so high that two hours buys only ~67 turns, and a
+single objective's exploration consumed most of them while the rest sat queued. More clock would not fix
+this; the ceiling is the model's *speed*, not its budget.
+
+The lesson is *not* "ARTEX found less than Cairn." It is that **ARTEX front-loads structure, and qwen is
+too slow to execute that structure to completion no matter how long you wait.** Contrast Cairn + qwen,
+which "finished" in six steps only because it (wrongly) declared victory at 3/6. Two different failure
+modes: ARTEX kept honestly grinding one objective at a time and ran out of real time; Cairn quit early
+with a fabricated justification.
 
 ---
 
@@ -187,7 +194,7 @@ Two frameworks × two models, plus the refusal cell:
 | | qwen3:30b-a3b | claude-sonnet-4-5 | claude-sonnet-5-5 |
 |---|---|---|---|
 | **Cairn** <br> *(model-driven loop)* | 3/6 · ran to completion · hardened prompts · 1 false positive | **6/6** · ran to completion · 0 FP | not run — CLI 400s on Claude 5 † |
-| **ARTEX** <br> *(deterministic decomposition)* | 1/6 · **capped 30 min, did not converge** | 1/6 · **capped 20 min, did not converge** · finding verified | **refused** · 0 findings |
+| **ARTEX** <br> *(deterministic decomposition)* | 1/6 · **2 h run, < 5% budget used, did not converge** · finding verified | 1/6 · **capped 20 min, did not converge** · finding verified | **refused** · 0 findings |
 
 † Cairn's bundled `claude-code@2.1.98` sends the old `thinking.type.enabled` shape, which Claude 5
 rejects (see [gotchas](#three-engineering-gotchas-worth-recording)).
@@ -282,26 +289,27 @@ constraint this guide is written for — the framework that front-loads structur
 
 ## What we did *not* measure: a clean speed head-to-head
 
-We now have all four cells, so it's tempting to line up the wall-clocks — ~15.5 min (Cairn+qwen),
-~12 min (Cairn+Claude), 30 min (ARTEX+qwen), 20 min (ARTEX+Claude) — and crown a winner. **Don't.**
-Those four numbers are not the same measurement:
+We now have all four cells plus a near-uncapped ARTEX + qwen run, so it's tempting to line up the
+wall-clocks and crown a framework. **Don't.** The cells are still not the same kind of measurement:
 
 - **The two Cairn runs self-completed** (the model declared the goal met and stopped).
-- **The two ARTEX runs were time-boxed** — a wall-clock cap cut them off *mid-execution*, before
-  convergence. Their durations are the cap, not the work. One of them (the Claude cell) was additionally
-  interrupted when the host machine was moved to sleep during its post-deadline settle step; the timed
-  run itself was clean, but it is more proof that these numbers measure caps, not throughput.
+- **The ARTEX runs were time-boxed** — they ran until a wall-clock deadline, not until convergence. The
+  2-hour ARTEX + qwen run (task 27) is the most informative: it hit the deadline with **1/6 evidenced and
+  under 5% of its token and turn budget used**, so its duration measures qwen's throughput ceiling, not
+  ARTEX finishing the job. (The earlier ARTEX + Claude cell was additionally interrupted when the host was
+  slept during its post-deadline settle; the timed run itself was clean, but it is one more reason these
+  durations measure caps, not throughput.)
 
-Comparing "12 min, self-completed, 6/6" against "20 min, capped, 1/6" tells you nothing about which
-framework is faster — it compares a finished race to a stopwatch that rang before the finish line. And
-raw wall-clock is misleading even within Cairn: Cairn+qwen "finished" fast partly because it **quit at
-3/6** with a fabricated justification. Speed only means something held against coverage.
+What the uncapped qwen run *did* settle is real, not a timing artifact: **ARTEX + qwen does not
+converge**, and not for lack of budget — two hours and a near-untouched token/turn allowance still
+produced exactly one objective.
 
-The honest speed experiment is unchanged and still **not done**: *fix the model, run ARTEX and Cairn
-back-to-back on the identical VAmPI goal with **no cap**, and record wall-clock and objective-coverage
-together.* The first half of that — an uncapped ARTEX + qwen run allowed to converge — is the next data
-point to collect. Until then, treat **every** timing number on this page as *within-framework* only, and
-read the matrix for coverage and behaviour, not for speed.
+What remains **unmeasured** is a like-for-like *framework* speed test: the same **frontier** model driving
+**both** ARTEX and Cairn, each allowed to run to convergence, stopwatched together. Comparing
+Cairn+Claude's "12 min to 6/6, self-completed" against any ARTEX+Claude number we have is apples to
+oranges, because the ARTEX+Claude run was capped mid-execution (Run E). Until that frontier-model,
+run-to-convergence head-to-head exists, read this page's timings for *behaviour and coverage*, not for
+"which framework is faster."
 
 ---
 
@@ -314,11 +322,11 @@ Cairn+qwen found "six facts" and Cairn+Claude "three facts" — a count that, ta
 qwen's six collapse to two solid findings plus a false positive and noise, while Claude's three carry
 all six objectives.
 
-The same replay discipline held on the ARTEX side. Both ARTEX runs that produced anything reported the
-`_debug` exposure as *critical* and *unverified* (the cap cut off ARTEX's own proof-binding step before
-it could confirm them) — so we replayed it ourselves: a live, unauthenticated `GET /users/v1/_debug`
-does dump every user with plaintext passwords (`admin` / `pass1`), confirming the finding independent of
-the tool's own verdict. And the refusal cell was checked the same skeptical way — a ~$0 key probe proved
+The same replay discipline held on the ARTEX side. Every ARTEX run that produced a finding (tasks 23, 26,
+and the 2-hour task 27) reported the `_debug` exposure as *critical* and *unverified* (the deadline cut
+off ARTEX's own proof-binding step before it could confirm them) — so we replayed it ourselves: a live,
+unauthenticated `GET /users/v1/_debug` does dump every user with plaintext passwords (`admin` / `pass1`),
+confirming the finding independent of the tool's own verdict. And the refusal cell was checked the same skeptical way — a ~$0 key probe proved
 the empty `claude-sonnet-5-5` output was a genuine refusal, not a broken key, before we drew any
 conclusion from it.
 
